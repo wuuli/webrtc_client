@@ -19,7 +19,11 @@ class RoomManager {
 
   private socketConnect() {
     this.socketDisconnect()
-    this.socket = io('localhost:3001');
+    if (process.env.NODE_ENV === 'development') {
+      this.socket = io('localhost:3001');
+    } else {
+      this.socket = io('socket.xulin.fun')
+    }
 
     this.socket.on('joined', (roomId, socketId, userCount) => {
       console.log('receive joined message', roomId, socketId, userCount)
