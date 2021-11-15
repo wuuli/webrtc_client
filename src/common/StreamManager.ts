@@ -1,40 +1,48 @@
-export type StreamReadyListener = (stream: MediaStream) => void
+export type StreamChangeListener = (stream: MediaStream | null) => void
 
 export interface StreamEventMap {
-  localStreamReady: StreamReadyListener,
-  remoteStreamReady: StreamReadyListener
+  localStreamChange: StreamChangeListener,
+  remoteStreamChange: StreamChangeListener
 }
 
 class StreamManager {
 
   private localStream: MediaStream | undefined
 
-  private remoteStream: MediaStream | undefined
+  private remoteStream: MediaStream | null = null
 
-  private localStreamReadyListeners : StreamReadyListener[] = []
+  private localStreamChangeListeners : StreamChangeListener[] = []
 
-  private remoteStreamReadyListeners : StreamReadyListener[] = []
+  private remoteStreamChangeListeners : StreamChangeListener[] = []
 
-  start() {
+  start(videoDid: string, audioDid: string) {
     navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
+      video: {
+        deviceId: {
+          exact: videoDid
+        },
+      },
+      audio: {
+        deviceId: {
+          exact: audioDid
+        },
+      },
     }).then(stream => {
       this.localStream = stream
-      this.localStreamReadyListeners.forEach(listener => listener(stream))
+      this.localStreamChangeListeners.forEach(listener => listener(stream))
     }).catch(e => {
       console.error('get stream error !!!', e)
     })
   }
 
   addListener<K extends keyof StreamEventMap>(type: K, listener: StreamEventMap[K]) {
-    if (type === 'localStreamReady') {
-      this.localStreamReadyListeners.push(listener)
+    if (type === 'localStreamChange') {
+      this.localStreamChangeListeners.push(listener)
       if (this.localStream) {
         listener(this.localStream)
       }
-    } else if (type === 'remoteStreamReady') {
-      this.remoteStreamReadyListeners.push(listener)
+    } else if (type === 'remoteStreamChange') {
+      this.remoteStreamChangeListeners.push(listener)
       if (this.remoteStream) {
         listener(this.remoteStream)
       }
@@ -43,15 +51,15 @@ class StreamManager {
 
 
   removeListener<K extends keyof StreamEventMap>(type: K, listener: StreamEventMap[K]) {
-    if (type === 'localStreamReady') {
-      const targetIndex = this.localStreamReadyListeners.indexOf(listener)
+    if (type === 'localStreamChange') {
+      const targetIndex = this.localStreamChangeListeners.indexOf(listener)
       if (targetIndex > -1) {
-        this.localStreamReadyListeners.splice(targetIndex, 1)
+        this.localStreamChangeListeners.splice(targetIndex, 1)
       }
-    } else if (type === 'remoteStreamReady') {
-      const targetIndex = this.remoteStreamReadyListeners.indexOf(listener)
+    } else if (type === 'remoteStreamChange') {
+      const targetIndex = this.remoteStreamChangeListeners.indexOf(listener)
       if (targetIndex > -1) {
-        this.remoteStreamReadyListeners.splice(targetIndex, 1)
+        this.remoteStreamChangeListeners.splice(targetIndex, 1)
       }
     }
   }
@@ -60,10 +68,21 @@ class StreamManager {
     return this.localStream
   }
 
-  setRemoteStream(stream: MediaStream) {
-    this.remoteStream = stream
-    this.remoteStreamReadyListeners.forEach((listener) => {
-      listener(stream)
+  resetRemoteStream() {
+    this.remoteStream = null
+    this.remoteStreamChangeListeners.forEach(listener => {
+      listener(this.remoteStream)
+    })
+  }
+
+  addTrackToRemoteStream(track: MediaStreamTrack) {
+    if (this.remoteStream) {
+      this.remoteStream.addTrack(track)
+    } else {
+      this.remoteStream = new MediaStream([track])
+    }
+    this.remoteStreamChangeListeners.forEach(listener => {
+      listener(this.remoteStream)
     })
   }
 }
