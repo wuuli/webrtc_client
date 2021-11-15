@@ -37,9 +37,7 @@ export const LocalPreview: React.FC<LocalPreviewProps> = ({className}) => {
   }, [])
 
   useEffect(() => {
-    if (videoSelected && audioSelected) {
-      streamManager.start(videoSelected, audioSelected)
-    }
+    streamManager.start(videoSelected, audioSelected)
   }, [videoSelected, audioSelected])
 
   const handleVideoSelect = useCallback((e: ChangeEvent<HTMLInputElement>, deviceId: string) => {
