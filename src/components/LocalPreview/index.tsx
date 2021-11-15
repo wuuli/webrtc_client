@@ -16,12 +16,25 @@ export const LocalPreview: React.FC<LocalPreviewProps> = ({className}) => {
   const [videoSelected, setVideoSelected] = useState('')
   const [audioSelected, setAudioSelected] = useState('')
 
-  useEffect(() => {
+  const handleDeviceChange = useCallback(() => {
     navigator.mediaDevices.enumerateDevices().then(devices => {
       setVideoDevices(devices.filter(d => d.kind === 'videoinput'))
       setAudioDevices(devices.filter(d => d.kind === 'audioinput'))
     })
   }, [])
+
+  useEffect(() => {
+    streamManager.requestPermission().then(() => {
+      handleDeviceChange()
+    }).catch(e => {
+      console.error('request permission error !!!', e)
+    })
+
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange)
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange)
+    }
+  }, [handleDeviceChange])
 
   useEffect(() => {
     const handleStreamChange: StreamChangeListener = (stream) => {
@@ -37,7 +50,9 @@ export const LocalPreview: React.FC<LocalPreviewProps> = ({className}) => {
   }, [])
 
   useEffect(() => {
-    streamManager.start(videoSelected, audioSelected)
+    if (videoSelected && audioSelected) {
+      streamManager.start(videoSelected, audioSelected)
+    }
   }, [videoSelected, audioSelected])
 
   const handleVideoSelect = useCallback((e: ChangeEvent<HTMLInputElement>, deviceId: string) => {

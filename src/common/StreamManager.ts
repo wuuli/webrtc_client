@@ -15,22 +15,25 @@ class StreamManager {
 
   private remoteStreamChangeListeners : StreamChangeListener[] = []
 
+  async requestPermission() {
+    await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    })
+  }
+
   start(videoDid: string, audioDid: string) {
-    const video: boolean | MediaTrackConstraints = videoDid ? {
+    navigator.mediaDevices.getUserMedia({
+      video: {
         deviceId: {
           exact: videoDid
         },
-      } : true
-
-    const audio: boolean | MediaTrackConstraints = audioDid ? {
-      deviceId: {
-        exact: videoDid
       },
-    } : true
-
-    navigator.mediaDevices.getUserMedia({
-      video,
-      audio,
+      audio: {
+        deviceId: {
+          exact: audioDid
+        },
+      },
     }).then(stream => {
       this.localStream = stream
       this.localStreamChangeListeners.forEach(listener => listener(stream))
