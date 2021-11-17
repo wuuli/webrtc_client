@@ -69,7 +69,7 @@ export const LocalPreview: React.FC<LocalPreviewProps> = ({className}) => {
 
   return (
     <div className={classNames(styles.container, className)}>
-      <div>选择视频输入：</div>
+      <div>请选择视频输入：</div>
       {videoDevices.map(device => (
         <div key={device.deviceId}>
           <input
@@ -82,7 +82,7 @@ export const LocalPreview: React.FC<LocalPreviewProps> = ({className}) => {
           <label>{device.label}</label>
         </div>
       ))}
-      <div>选择音频输入：</div>
+      <div>请选择音频输入：</div>
       {audioDevices.map(device => (
         <div key={device.deviceId}>
           <input

@@ -2,9 +2,15 @@ import { io, Socket } from 'socket.io-client';
 import { RTCManager } from './RTCManager';
 
 export enum RoomState {
-  init = 'init',
+  leave = 'leave',
   joined = 'joined',
   joined_conn = 'joined_conn'
+}
+
+export type RoomStateChangListener = (state: RoomState) => void
+
+export interface RoomEventMap {
+  roomStateChange: RoomStateChangListener
 }
 
 class RoomManager {
@@ -13,9 +19,16 @@ class RoomManager {
 
   private socket: Socket | undefined
 
-  private state: RoomState = RoomState.init
+  private roomState: RoomState = RoomState.leave
 
   private rtcManager: RTCManager | undefined
+
+  private roomStateChangeListeners: RoomStateChangListener[] = []
+
+  private setState(state: RoomState) {
+    this.roomState = state
+    this.roomStateChangeListeners.forEach(listener => listener(state))
+  }
 
   private socketConnect() {
     this.socketDisconnect()
@@ -28,7 +41,7 @@ class RoomManager {
     this.socket.on('joined', (roomId, socketId, userCount) => {
       console.log('receive joined message', roomId, socketId, userCount)
       this.roomId = roomId
-      this.state = RoomState.joined
+      this.setState(RoomState.joined)
 
       if (userCount > 1) {
         this.rtcManager = new RTCManager()
@@ -55,12 +68,12 @@ class RoomManager {
     })
 
     this.socket.on('left', () => {
-      this.state = RoomState.init
+      this.setState(RoomState.leave)
       this.socketDisconnect()
     })
 
     this.socket.on('bye', () => {
-      this.state = RoomState.init
+      this.setState(RoomState.leave)
       this.rtcManager?.close()
       this.rtcManager = undefined
     })
@@ -111,6 +124,21 @@ class RoomManager {
     this.socket?.emit('leave', this.roomId)
     this.rtcManager?.close()
     this.rtcManager = undefined
+  }
+
+  addListener<K extends keyof RoomEventMap>(type: K, listener: RoomEventMap[K]) {
+    if (type === 'roomStateChange') {
+      this.roomStateChangeListeners.push(listener)
+    }
+  }
+
+  removeListener<K extends keyof RoomEventMap>(type: K, listener: RoomEventMap[K]) {
+    if (type === 'roomStateChange') {
+      const targetIndex = this.roomStateChangeListeners.indexOf(listener)
+      if (targetIndex > -1) {
+        this.roomStateChangeListeners.splice(targetIndex, 1)
+      }
+    }
   }
 }
 
